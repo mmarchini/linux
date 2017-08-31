@@ -630,7 +630,7 @@ dtrace_data_model(proc_t *p)
 		/*   getting  nested  interrupts. This should  */
 		/*   be ok, in the worst case.		       */
 		/***********************************************/
-		
+
 		flags = dtrace_interrupt_get();
 		asm("sti\n");
 		uread(p, (void *) buf, (size_t) EI_CLASS + 1, (uintptr_t) vma->vm_start);
@@ -638,7 +638,7 @@ dtrace_data_model(proc_t *p)
 
 		if (*buf != 0x7f ||
 		    buf[1] != 'E' ||
-		    buf[2] != 'L' || 
+		    buf[2] != 'L' ||
 		    buf[3] != 'F')
 			continue;
 		if (buf[EI_CLASS] == ELFCLASS64) {
@@ -684,7 +684,7 @@ dtrace_linux_init(void)
 	/***********************************************/
 	/*   Initialise the interrupt vectors.	       */
 	/***********************************************/
-	
+
 	/***********************************************/
 	/*   Needed   for  validating  module  symbol  */
 	/*   probes.				       */
@@ -705,10 +705,10 @@ dtrace_linux_init(void)
 	/***********************************************/
 	/*   Register proc exit hook.		       */
 	/***********************************************/
-	fn_profile_event_register = 
+	fn_profile_event_register =
 		(int (*)(enum profile_type type, struct notifier_block *n))
 			get_proc_addr("profile_event_register");
-	fn_profile_event_unregister = 
+	fn_profile_event_unregister =
 		(int (*)(enum profile_type type, struct notifier_block *n))
 			get_proc_addr("profile_event_unregister");
 
@@ -762,7 +762,7 @@ dtrace_linux_init(void)
 	}
 # if defined(__arm__)
 	ktime_get_ptr = (ktime_t (*)(void)) get_proc_addr("ktime_get");
-	# define rdtscll(t) t = ktime_get_ptr().tv64
+	# define rdtscll(t) t = ktime_to_ns(ktime_get_ptr())
 	# define __flush_tlb_all() local_flush_tlb_all()
 	# define _PAGE_NX 0
 	# define _PAGE_RW 0
@@ -929,7 +929,7 @@ dtrace_memchr(const char *buf, int c, int len)
 /**********************************************************************/
 /*   Debug code for printing a gate.				      */
 /**********************************************************************/
-static void 
+static void
 dtrace_print_gate(struct gate_struct *g)
 {
 	dtrace_dump_mem64(g, 2);
@@ -1253,7 +1253,7 @@ is_kernel_text(unsigned long p)
 {static int first_time = TRUE;
 static caddr_t stext;
 static caddr_t etext;
-	
+
 //printk("ktext=%p..%p %p\n", ktext, ketext, p);
 	if (ktext <= (caddr_t) p && (caddr_t) p < ketext)
 		return 1;
@@ -1812,7 +1812,7 @@ return 0;
 
 	if (die_chain) {
 		for (np = atomic_head(die_chain); np; np = np->next) {
-			if (do_print) 
+			if (do_print)
 				printk("illop-chain: %p\n", np->notifier_call);
 			if ((uint8_t *) np->notifier_call == ptr)
 				return 1;
@@ -1930,7 +1930,7 @@ return;
 static void *
 par_lookup(void *ptr)
 {	par_alloc_t *p;
-	
+
 	dmutex_enter(&par_mutex);
 	for (p = hd_par; p; p = p->pa_next) {
 		if (p->pa_ptr == ptr) {
@@ -2012,7 +2012,7 @@ print_pte(pte_t *pte, int level)
 # endif
 	printk("pte: %p level=%d %p %s%s%s%s%s%s%s%s%s\n",
 		pte,
-		level, (long *) pte_val(*pte), 
+		level, (long *) pte_val(*pte),
 		pte_val(*pte) & _PAGE_NX ? "NX " : "",
 		pte_val(*pte) & _PAGE_RW ? "RW " : "RO ",
 		pte_val(*pte) & _PAGE_USER ? "USER " : "KERNEL ",
@@ -2033,7 +2033,7 @@ print_pte(pte_t *pte, int level)
 /*   probes. Also need to garbage collect the shadow proc structure,  */
 /*   so we dont leak memory.					      */
 /**********************************************************************/
-static int 
+static int
 proc_exit_notifier(struct notifier_block *n, unsigned long code, void *ptr)
 {
 	sol_proc_t sol_proc;
@@ -2071,9 +2071,9 @@ static int proc_notifier_trap_illop(struct notifier_block *n, unsigned long code
 {	struct die_args *args = (struct die_args *) ptr;
 
 	if (dtrace_here) {
-		printk("proc_notifier_trap_illop called! %s err:%ld trap:%d sig:%d PC:%p CPU:%d\n", 
+		printk("proc_notifier_trap_illop called! %s err:%ld trap:%d sig:%d PC:%p CPU:%d\n",
 			args->str, args->err, args->trapnr, args->signr,
-			(void *) args->regs->r_pc, 
+			(void *) args->regs->r_pc,
 			smp_processor_id());
 	}
 	return NOTIFY_KERNEL;
@@ -2178,7 +2178,7 @@ syms_read(struct file *fp, char __user *buf, size_t len, loff_t *off)
 /*   entries.  Shouldnt  be in the /dev/fbt, and will migrate to its  */
 /*   own dtrace_ctl driver at a later date.			      */
 /**********************************************************************/
-ssize_t 
+ssize_t
 syms_write(struct file *file, const char __user *buf,
 			      size_t count, loff_t *pos)
 {
@@ -2260,7 +2260,7 @@ syms_write(struct file *file, const char __user *buf,
 	if (ptr &&
 	    syms[OFFSET_modules].m_ptr == NULL &&
 	    ptr[16] == 0x8b && ptr[17] == 0x15 && ptr[22] == 0x8d) {
-		syms[OFFSET_modules].m_ptr = (unsigned long *) *((long *) 
+		syms[OFFSET_modules].m_ptr = (unsigned long *) *((long *)
 			(ptr + 18));
 		xmodules = syms[OFFSET_modules].m_ptr;
 		printk("dtrace: modules[] located at %p\n",
@@ -2343,9 +2343,9 @@ tsignal(proc_t *p, int sig)
 /**********************************************************************/
 /*   Read from a procs memory.					      */
 /**********************************************************************/
-int 
+int
 uread(proc_t *p, void *addr, size_t len, uintptr_t dest)
-{	int (*func)(struct task_struct *tsk, unsigned long addr, void *buf, int len, int write) = 
+{	int (*func)(struct task_struct *tsk, unsigned long addr, void *buf, int len, int write) =
 		fbt_get_access_process_vm();
 	int	ret;
 
@@ -2353,9 +2353,9 @@ uread(proc_t *p, void *addr, size_t len, uintptr_t dest)
 //printk("uread %p %p %d %p -- func=%p ret=%d\n", p, addr, (int) len, (void *) dest, func, ret);
 	return ret == len ? 0 : -1;
 }
-int 
+int
 uwrite(proc_t *p, void *src, size_t len, uintptr_t addr)
-{	int (*func)(struct task_struct *tsk, unsigned long addr, void *buf, int len, int write) = 
+{	int (*func)(struct task_struct *tsk, unsigned long addr, void *buf, int len, int write) =
 		fbt_get_access_process_vm();
 	int	ret;
 
@@ -2409,7 +2409,7 @@ vmem_create(const char *name, void *base, size_t size, size_t quantum,
 
 	dtrace_printf("vmem_create(%s) %p\n", name, seqp);
 /*	mutex_dump(&seqp->seq_mutex);*/
-	
+
 	return seqp;
 }
 
@@ -2424,7 +2424,7 @@ vmem_free(vmem_t *hdr, void *ptr, size_t size)
 	}
 
 }
-void 
+void
 vmem_destroy(vmem_t *hdr)
 {	seq_t *seqp = (seq_t *) hdr;
 
@@ -2517,7 +2517,7 @@ helper_read(struct file *fp, char __user *buf, size_t len, loff_t *off)
 	return -EIO;
 }
 /*
-static int 
+static int
 helper_read_proc(char *page, char **start, off_t off, int count, int *eof, void *data)
 {	int len;
 
@@ -2530,7 +2530,7 @@ helper_read_proc(char *page, char **start, off_t off, int count, int *eof, void 
 /*   Invoked  by  drti.c  -- the USDT .o file linked into apps which  */
 /*   provide user space dtrace probes.				      */
 /**********************************************************************/
-static int 
+static int
 helper_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)
 {	int	ret;
 	int	rv = 0;
@@ -2548,7 +2548,7 @@ helper_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 }
 #endif
 #ifdef HAVE_COMPAT_IOCTL
-static long 
+static long
 helper_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	return helper_ioctl(NULL, file, cmd, arg);
@@ -2679,7 +2679,7 @@ parse_sec(dsec_item_t *dp, const char *cp, const char *cpend)
 /*   Parse  data written to /dev/dtrace. This is either debug stuff,  */
 /*   or the security regime.					      */
 /**********************************************************************/
-static ssize_t 
+static ssize_t
 dtracedrv_write(struct file *file, const char __user *buf,
 			      size_t count, loff_t *pos)
 {	const char	*bpend = buf + count;
@@ -2692,7 +2692,7 @@ dtracedrv_write(struct file *file, const char __user *buf,
 	/*   security model.			       */
 	/***********************************************/
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29)
-	if (KUIDT_VALUE(current->cred->uid) != 0 && 
+	if (KUIDT_VALUE(current->cred->uid) != 0 &&
 	    KUIDT_VALUE(current->cred->euid) != 0)
 #else
 	if (current->uid != 0 && current->euid != 0)
@@ -2765,7 +2765,7 @@ static int proc_dtrace_security_show(struct seq_file *seq, void *v)
 	for (i = 0; i < di_cnt && di_list[i].di_type; i++) {
 		char	*tp;
 		char	*tpend = tmpbuf + sizeof tmpbuf;
-		strcpy(tmpbuf, 
+		strcpy(tmpbuf,
 			di_list[i].di_type == DIT_UID ? "uid " :
 			di_list[i].di_type == DIT_GID ? "gid " :
 			di_list[i].di_type == DIT_ALL ? "all " : "sec?? ");
@@ -3246,4 +3246,3 @@ static void __exit dtracedrv_exit(void)
 }
 module_init(dtracedrv_init);
 module_exit(dtracedrv_exit);
-

@@ -55,19 +55,19 @@ static void cbe_disable(cyb_arg_t);
 static void cbe_reprogram(cyb_arg_t, hrtime_t);
 static void cbe_xcall(cyb_arg_t, cpu_t *, cyc_func_t, void *);
 
-static void 
+static void
 cbe_enable(cyb_arg_t a)
 {
 }
-static void 
+static void
 cbe_disable(cyb_arg_t a)
 {
 }
-static void 
+static void
 cbe_reprogram(cyb_arg_t a, hrtime_t t)
 {
 }
-static void 
+static void
 cbe_xcall(cyb_arg_t a, cpu_t *c, cyc_func_t f, void *p)
 {
 }
@@ -90,7 +90,7 @@ init_cyclic()
 	/*   to be used.			       */
 	/***********************************************/
         cyclic_init(&be, 1);
-	
+
 	return TRUE;
 }
 
@@ -190,7 +190,11 @@ static void cyclic_tasklet_func(unsigned long arg)
 			break;
 
 		ptr = &cp->c_htp;
+  #if(LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0))
 		kt.tv64 = cp->c_time.cyt_interval;
+  #else
+    kt = cp->c_time.cyt_interval;
+  #endif
 		/***********************************************/
 		/*   Invoke the callback.		       */
 		/***********************************************/
@@ -226,8 +230,10 @@ static void cyclic_tasklet_func(unsigned long arg)
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28)
 		ptr->_expires = ktime_add_ns(ptr->_expires, kt.tv64);
 		ptr->_softexpires = ktime_add_ns(ptr->_softexpires, kt.tv64);
-#else
+#elif(LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0))
 		ptr->expires = ktime_add_ns(ptr->expires, kt.tv64);
+#else
+    ptr->expires = ktime_add_ns(ptr->expires, kt);
 #endif
 		if (fn_hrtimer_start)
 			fn_hrtimer_start(&cp->c_htp, kt, HRTIMER_MODE_REL);
@@ -243,7 +249,7 @@ static enum hrtimer_restart
 be_callback(struct hrtimer *ptr)
 {	struct c_timer *cp;
 	unsigned long flags;
-	
+
 	/***********************************************/
 	/*   Add  it to the tasklet runq, but dont do  */
 	/*   it if already on the queue.	       */
@@ -263,11 +269,11 @@ be_callback(struct hrtimer *ptr)
 	/***********************************************/
 	/*   Get ready for the next timer interval.    */
 	/***********************************************/
-	fn_hrtimer_forward(ptr, ptr->base->get_time(), 
+	fn_hrtimer_forward(ptr, ptr->base->get_time(),
 		ktime_set(cp->c_sec, cp->c_nsec));
 
 	tasklet_schedule(&cyclic_tasklet);
-	
+
 	return HRTIMER_RESTART;
 }
 #if 0
@@ -310,7 +316,7 @@ be_callback(struct hrtimer *ptr)
 }
 #endif
 
-cyclic_id_t 
+cyclic_id_t
 cyclic_add(cyc_handler_t *hdrl, cyc_time_t *t)
 {	struct c_timer *cp;
 	ktime_t kt;
@@ -326,11 +332,15 @@ cyclic_add(cyc_handler_t *hdrl, cyc_time_t *t)
 	}
 
 	cnt_timer_add++;
+#if(LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0))
 	kt.tv64 = t->cyt_interval;
+#else
+  kt = t->cyt_interval;
+#endif
 	cp->c_hdlr = *hdrl;
 	cp->c_time = *t;
-	cp->c_sec = kt.tv64 / (1000 * 1000 * 1000);
-	cp->c_nsec = kt.tv64 % (1000 * 1000 * 1000);
+	cp->c_sec = ktime_to_ns(kt) / (1000 * 1000 * 1000);
+	cp->c_nsec = ktime_to_ns(kt) % (1000 * 1000 * 1000);
 	cp->c_state = TMR_ALIVE;
 
 	fn_hrtimer_init(&cp->c_htp, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
@@ -350,7 +360,7 @@ cyclic_add_omni(cyc_omni_handler_t *omni)
 	TODO();
 	return 0;
 }
-void 
+void
 cyclic_remove(cyclic_id_t id)
 {	struct c_timer *ctp = (struct c_timer *) id;
 	unsigned long flags;
@@ -471,4 +481,3 @@ cyclic_remove(cyclic_id_t id)
 	}
 }
 # endif
-
